@@ -95,6 +95,60 @@ or
 fmt.Printf("Distance is %d \n", beda.LevenshteinDistance("abcd", "bc"))
 ```
 
+
+### Damerau-Levenshtein Distance
+
+(From [Wikipedia](https://en.wikipedia.org/wiki/Damerau%E2%80%93Levenshtein_distance))
+Damerau-Levenshtein Distance is a string metric for measuring the edit distance between two 
+sequences. Informally, the Damerau–Levenshtein distance between two words is the minimum 
+number of operations (consisting of insertions, deletions or substitutions of a single 
+character, or transposition of two adjacent characters) required to change one word into the other.
+
+The Damerau–Levenshtein distance differs from the classical Levenshtein distance by 
+including transpositions among its allowable operations in addition to the three classical 
+single-character edit operations (insertions, deletions and substitutions).
+
+Reading :
+
+- [https://en.wikipedia.org/wiki/Damerau%E2%80%93Levenshtein_distance](https://en.wikipedia.org/wiki/Damerau%E2%80%93Levenshtein_distance)
+
+API :
+
+```go
+func DamerauLevenshteinDistance(s1, s2 string) int
+func (sd *StringDiff) DamerauLevenshteinDistance(deleteCost, insertCost, replaceCost, swapCost int) int
+```
+
+`func DamerauLevenshteinDistance` take 2 arguments,<br>
+`s1` is the first string to compare<br>
+`s2` is the second string to compare<br>
+The closer return value to 0 means the more similar the two words.
+This function uses the default value of 1 for all `deleteCost`, `insertCost`, `replaceCost` and `swapCost`
+
+`func (sd *StringDiff) DamerauLevenshteinDistance` takes 4 arguments,<br>
+`deleteCost` is multiplier factor for delete operation<br>
+`insertCost` is multiplier factor for insert operation<br>
+`replaceCost` is multiplier factor for replace operation<br>
+`swapCost` is multiplier factor for swap operation<br>
+A multiplier value enable us to weight on how impactful each of the operation 
+contributing to the change distance.
+
+
+Example :
+
+```go
+sd := beda.NewStringDiff("abcd", "bc")
+lDist := sd.DamerauLevenshteinDistance(1,1,1,1)
+fmt.Printf("Distance is %d \n", lDist) // prints : Distance is 2
+```
+
+or
+
+```go
+fmt.Printf("Distance is %d \n", beda.DamerauLevenshteinDistance("abcd", "bc"))
+```
+
+
 ### TriGram Compare
 
 TrigramCompare  is a case of n-gram, a contiguous sequence of n (three, in this case) items from a given sample.
