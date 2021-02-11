@@ -120,3 +120,55 @@ func TestJaroWinklerDistance(t *testing.T) {
 		}
 	}
 }
+
+func TestDamerauLevenshteinDistance(t *testing.T) {
+	testData := make([]*TestLehvenstein, 0)
+	testData = append(testData, &TestLehvenstein{
+		S1: "abc",
+		S2: "abd",
+		D:  1,
+	}, &TestLehvenstein{
+		S1: "abc",
+		S2: "abc",
+		D:  0,
+	}, &TestLehvenstein{
+		S1: "abc",
+		S2: "ade",
+		D:  2,
+	}, &TestLehvenstein{
+		S1: "abc",
+		S2: "def",
+		D:  3,
+	}, &TestLehvenstein{
+		S1: "abc",
+		S2: "abca",
+		D:  1,
+	}, &TestLehvenstein{
+		S1: "abc",
+		S2: "abcabc",
+		D:  3,
+	}, &TestLehvenstein{
+		S1: "abc",
+		S2: "ab",
+		D:  1,
+	}, &TestLehvenstein{
+		S1: "abc",
+		S2: "",
+		D:  3,
+	}, &TestLehvenstein{ // test swap
+		S1: "abcde",
+		S2: "abced",
+		D:  1,
+	}, &TestLehvenstein{ // test swap
+		S1: "abcde",
+		S2: "ebcda",
+		D:  2,
+	})
+
+	for _, td := range testData {
+		sd := NewStringDiff(td.S1, td.S2)
+		if sd.DamerauLevenshteinDistance(1,1,1,1) != td.D {
+			t.Error("Distance between", td.S1, "and", td.S2, "expected to", td.D, "but", sd.DamerauLevenshteinDistance(1,1,1,1))
+		}
+	}
+}

@@ -1,5 +1,10 @@
 package beda
 
+import (
+	"fmt"
+	"math"
+)
+
 // NewStringDiff will create a new instance of StringDiff
 func NewStringDiff(s1, s2 string) *StringDiff {
 	return &StringDiff{
@@ -287,4 +292,141 @@ func (sd *StringDiff) JaroWinklerDistance(p float32) float32 {
 	dw := dj + ((p * float32(sim)) * (1.0 - dj))
 
 	return dw
+}
+
+// DamerauLevenshteinDistance Algorithm is an extension to the Levenshtein
+// Algorithm which solves the edit distance problem between a source string and
+// a target string with the following operations:
+//
+// Read https://en.wikipedia.org/wiki/Damerau%E2%80%93Levenshtein_distance
+func DamerauLevenshteinDistance(s1, s2 string) int {
+	sd := NewStringDiff(s1, s2)
+	return sd.DamerauLevenshteinDistance(1,1,1,1)
+}
+
+
+// DamerauLevenshteinDistance Algorithm is an extension to the Levenshtein
+// Algorithm which solves the edit distance problem between a source string and
+// a target string with the following operations:
+//
+// - Character Insertion
+// - Character Deletion
+// - Character Replacement
+// - Adjacent Character Swap
+//
+// Note that the adjacent character swap operation is an edit that may be
+// applied when two adjacent characters in the source string match two adjacent
+// characters in the target string, but in reverse order, rather than a general
+// allowance for adjacent character swaps.
+//
+// This implementation allows the client to specify the costs of the various
+// edit operations with the restriction that the cost of two swap operations
+// must not be less than the cost of a delete operation followed by an insert
+// operation. This restriction is required to preclude two swaps involving the
+// same character being required for optimality which, in turn, enables a fast
+// dynamic programming solution.
+//
+// The running time of the Damerau-Levenshtein algorithm is O(n*m) where n is
+// the length of the source string and m is the length of the target string.
+// This implementation consumes O(n*m) space.
+//
+// This code is an adaptation from https://github.com/KevinStern/software-and-algorithms/blob/master/src/main/java/blogspot/software_and_algorithms/stern_library/string/DamerauLevenshteinAlgorithm.java
+func (sd *StringDiff) DamerauLevenshteinDistance(deleteCost, insertCost,
+	replaceCost, swapCost int) int {
+	if 2 * swapCost < insertCost + deleteCost {
+		panic(fmt.Sprintf("Unsupported cost assignment. Expression 2 * %d(swapCost) < %d(insertCost) + %d(deleteCost) is detected", swapCost, insertCost, deleteCost))
+	}
+
+	source := []byte(sd.S1)
+	target := []byte(sd.S2)
+	if len(source) == 0 {
+		return len(target) * insertCost
+	}
+	if len(target) == 0 {
+		return len(source) * deleteCost
+	}
+	table := make([][]int, len(source))
+	for i := range table {
+		table[i] = make([]int, len(target))
+	}
+	sourceIndexByCharacter := make(map[byte]int)
+	if source[0] != target[0] {
+		table[0][0] = minInt(replaceCost, deleteCost + insertCost)
+	}
+	sourceIndexByCharacter[source[0]] = 0
+	for i := 1; i < len(source); i++ {
+		deleteDistance := table[i - 1][0] + deleteCost
+		insertDistance := (i + 1) * deleteCost + insertCost
+		ops := replaceCost
+		if source[i] == target[0] {
+			ops = 0
+		}
+		matchDistance := i * deleteCost + ops
+		table[i][0] =  minInt(minInt(deleteDistance, insertDistance),
+			matchDistance)
+	}
+	for j := 1; j < len(target); j++ {
+		deleteDistance := (j + 1) * insertCost + deleteCost;
+		insertDistance := table[0][j - 1] + insertCost
+		ops := replaceCost
+		if source[0] == target[j] {
+			ops = 0
+		}
+		matchDistance := j * insertCost + ops
+		table[0][j] = minInt(minInt(deleteDistance, insertDistance),
+			matchDistance)
+	}
+	for i := 1; i < len(source); i++ {
+		maxSourceLetterMatchIndex := -1
+		if source[i] == target[0] {
+			maxSourceLetterMatchIndex = 0
+		}
+		for j := 1; j < len(target); j++ {
+			sourceIndexByCharacterNil := true
+			var candidateSwapIndex int
+			if v, ok := sourceIndexByCharacter[target[j]]; ok {
+				candidateSwapIndex = v
+				sourceIndexByCharacterNil = false
+			}
+			jSwap := maxSourceLetterMatchIndex
+			deleteDistance := table[i - 1][j] + deleteCost
+			insertDistance := table[i][j - 1] + insertCost
+			matchDistance := table[i - 1][j - 1]
+			if source[i] != target[j] {
+				matchDistance += replaceCost
+			} else {
+				maxSourceLetterMatchIndex = j
+			}
+			var swapDistance int
+			if sourceIndexByCharacterNil != true && jSwap != -1 {
+				iSwap := candidateSwapIndex
+				var preSwapCost int
+				if iSwap == 0 && jSwap == 0 {
+					preSwapCost = 0
+				} else {
+					preSwapCost = table[maxInt(0, iSwap - 1)][maxInt(0, jSwap - 1)]
+				}
+				swapDistance = preSwapCost + (i - iSwap - 1) * deleteCost + (j - jSwap - 1) * insertCost + swapCost
+			} else {
+				swapDistance = math.MaxInt32
+			}
+			table[i][j] = minInt(minInt(minInt(deleteDistance, insertDistance), matchDistance), swapDistance)
+		}
+		sourceIndexByCharacter[source[i]] = i
+	}
+	return table[len(source) - 1][len(target) - 1]
+}
+
+func minInt(a,b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func maxInt(a,b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
